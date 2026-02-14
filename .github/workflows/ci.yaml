@@ -1,4 +1,4 @@
-name: CI/CD - Build and Security Scan
+name: CI/CD - Build, Scan, and GitOps Update
 
 on:
   push:
@@ -9,10 +9,13 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_URL: ${{ secrets.ECR_URL }}
+  GITOPS_REPO: liormilliger/node-js-sample-k8s
 
 jobs:
   build-and-scan:
     runs-on: ubuntu-latest
+    outputs:
+      full_tag: ${{ env.FULL_TAG }} # Pass tag to the next job
     
     steps:
       - name: Checkout Code
@@ -59,3 +62,30 @@ jobs:
         run: |
           docker push ${{ env.ECR_URL }}:${{ env.FULL_TAG }}
           docker push ${{ env.ECR_URL }}:latest
+
+  update-gitops:
+    needs: build-and-scan
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout GitOps Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.GITOPS_REPO }}
+          token: ${{ secrets.K8S_REPO_PAT }}
+          path: gitops-repo
+
+      - name: Update Image Tag in values.yaml
+        run: |
+          cd gitops-repo/my-app-chart
+          # Use sed to find the line starting with tag: and replace the value
+          sed -i "s/tag: .*/tag: \"${{ needs.build-and-scan.outputs.full_tag }}\"/g" values.yaml
+          
+      - name: Commit and Push Changes
+        run: |
+          cd gitops-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add my-app-chart/values.yaml
+          git commit -m "chore: update image tag to ${{ needs.build-and-scan.outputs.full_tag }} [skip ci]"
+          git push origin HEAD
