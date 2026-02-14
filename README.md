@@ -8,7 +8,7 @@ This project is part of a **3-repository GitOps architecture** designed to separ
 
 1.  **Application Repo (This one)**: Source code, Dockerfile, and GitHub Actions CI workflow.
 2.  **[GitOps Repo (node-js-sample-k8s)](https://github.com/liormilliger/node-js-sample-k8s.git)**: Helm charts (ArgoCD), ServiceMonitors, and Grafana Dashboard-as-Code.
-3.  **Infrastructure Repo**: Terraform code for EKS, VPC, and AWS resource provisioning.
+3.  **[Infrastructure Repo (terraform-iac)](https://github.com/liormilliger/terraform-iac.git)**: Terraform code for EKS, VPC, and AWS resource provisioning.
 
 ### System Architecture
 ![System Architecture](./system-architecture.png)
